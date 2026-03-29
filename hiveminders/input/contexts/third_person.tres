@@ -1,0 +1,142 @@
+[gd_resource type="Resource" script_class="InputContextBindings" load_steps=31 format=3]
+
+[ext_resource type="Script" path="res://scripts/input/input_context_bindings.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/input/action_definition.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/input/action_binding.gd" id="3"]
+
+[sub_resource type="Resource" id="action_move_left"]
+script = ExtResource("2")
+action_name = "move_left"
+action_type = 0
+
+[sub_resource type="Resource" id="action_move_right"]
+script = ExtResource("2")
+action_name = "move_right"
+action_type = 0
+
+[sub_resource type="Resource" id="action_move_up"]
+script = ExtResource("2")
+action_name = "move_up"
+action_type = 0
+
+[sub_resource type="Resource" id="action_move_down"]
+script = ExtResource("2")
+action_name = "move_down"
+action_type = 0
+
+[sub_resource type="Resource" id="action_interact"]
+script = ExtResource("2")
+action_name = "interact"
+action_type = 0
+
+[sub_resource type="Resource" id="action_attack"]
+script = ExtResource("2")
+action_name = "attack"
+action_type = 0
+
+[sub_resource type="InputEventJoypadMotion" id="gp_move_left_evt"]
+axis = 0
+axis_value = -1.0
+
+[sub_resource type="Resource" id="gp_move_left"]
+script = ExtResource("3")
+action_name = "move_left"
+events = Array[InputEvent]([SubResource("gp_move_left_evt")])
+
+[sub_resource type="InputEventJoypadMotion" id="gp_move_right_evt"]
+axis = 0
+axis_value = 1.0
+
+[sub_resource type="Resource" id="gp_move_right"]
+script = ExtResource("3")
+action_name = "move_right"
+events = Array[InputEvent]([SubResource("gp_move_right_evt")])
+
+[sub_resource type="InputEventJoypadMotion" id="gp_move_up_evt"]
+axis = 1
+axis_value = -1.0
+
+[sub_resource type="Resource" id="gp_move_up"]
+script = ExtResource("3")
+action_name = "move_up"
+events = Array[InputEvent]([SubResource("gp_move_up_evt")])
+
+[sub_resource type="InputEventJoypadMotion" id="gp_move_down_evt"]
+axis = 1
+axis_value = 1.0
+
+[sub_resource type="Resource" id="gp_move_down"]
+script = ExtResource("3")
+action_name = "move_down"
+events = Array[InputEvent]([SubResource("gp_move_down_evt")])
+
+[sub_resource type="InputEventJoypadButton" id="gp_interact_evt"]
+button_index = 0
+
+[sub_resource type="Resource" id="gp_interact"]
+script = ExtResource("3")
+action_name = "interact"
+events = Array[InputEvent]([SubResource("gp_interact_evt")])
+
+[sub_resource type="InputEventJoypadButton" id="gp_attack_evt"]
+button_index = 2
+
+[sub_resource type="Resource" id="gp_attack"]
+script = ExtResource("3")
+action_name = "attack"
+events = Array[InputEvent]([SubResource("gp_attack_evt")])
+
+[sub_resource type="InputEventKey" id="kb_move_a_evt"]
+keycode = 65
+
+[sub_resource type="Resource" id="kb_move_left"]
+script = ExtResource("3")
+action_name = "move_left"
+events = Array[InputEvent]([SubResource("kb_move_a_evt")])
+
+[sub_resource type="InputEventKey" id="kb_move_d_evt"]
+keycode = 68
+
+[sub_resource type="Resource" id="kb_move_right"]
+script = ExtResource("3")
+action_name = "move_right"
+events = Array[InputEvent]([SubResource("kb_move_d_evt")])
+
+[sub_resource type="InputEventKey" id="kb_move_w_evt"]
+keycode = 87
+
+[sub_resource type="Resource" id="kb_move_up"]
+script = ExtResource("3")
+action_name = "move_up"
+events = Array[InputEvent]([SubResource("kb_move_w_evt")])
+
+[sub_resource type="InputEventKey" id="kb_move_s_evt"]
+keycode = 83
+
+[sub_resource type="Resource" id="kb_move_down"]
+script = ExtResource("3")
+action_name = "move_down"
+events = Array[InputEvent]([SubResource("kb_move_s_evt")])
+
+[sub_resource type="InputEventKey" id="kb_interact_evt"]
+keycode = 69
+
+[sub_resource type="Resource" id="kb_interact"]
+script = ExtResource("3")
+action_name = "interact"
+events = Array[InputEvent]([SubResource("kb_interact_evt")])
+
+[sub_resource type="InputEventMouseButton" id="kb_attack_evt"]
+button_index = 1
+
+[sub_resource type="Resource" id="kb_attack"]
+script = ExtResource("3")
+action_name = "attack"
+events = Array[InputEvent]([SubResource("kb_attack_evt")])
+
+[resource]
+script = ExtResource("1")
+context_name = "third_person"
+actions = Array[Resource]([SubResource("action_move_left"), SubResource("action_move_right"), SubResource("action_move_up"), SubResource("action_move_down"), SubResource("action_interact"), SubResource("action_attack")])
+gamepad_bindings = Array[Resource]([SubResource("gp_move_left"), SubResource("gp_move_right"), SubResource("gp_move_up"), SubResource("gp_move_down"), SubResource("gp_interact"), SubResource("gp_attack")])
+keyboard_mouse_bindings = Array[Resource]([SubResource("kb_move_left"), SubResource("kb_move_right"), SubResource("kb_move_up"), SubResource("kb_move_down"), SubResource("kb_interact"), SubResource("kb_attack")])

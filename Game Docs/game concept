@@ -1,0 +1,203 @@
+1. Core Pillars
+Dual gameplay modes:
+Isometric view colony management (dwarf fortress, rimworld)
+3rd-person direct control (minecraft)
+Cooperative multiplayer (each player = hivemind with their own workers)
+Simulation-first, emergent systems
+Branchable save timelines
+2. World Representation
+Hybrid Model (locked)
+World: voxel-based (1m resolution)
+Simulation: grid overlay aligned to voxels
+Benefits
+Efficient pathfinding + AI
+Immersive 3rd-person interaction
+3. Player Model
+Role: Hivemind Controller
+Assign jobs and zones
+Possess units directly
+Define priorities
+4. Game Modes
+Isometric Mode
+Job management
+Time scaling
+Resource/logistics visibility
+3rd Person Mode
+Direct control of unit
+Combat and precision actions
+Switching Rules
+One possessed unit at a time
+Cooldown on switching
+AI resumes control when unpossessed
+5. Multiplayer Model
+Shared world
+Each player owns units/resources
+Ownership tracked per entity
+owner_player_id
+Permissions for cooperation (future)
+6. Entity System
+Categories
+Units
+Structures
+Resources
+Environment
+Items
+Core Components
+Transform
+Inventory
+Health
+AI/Behavior
+TaskReceiver
+Interaction
+Ownership
+7. Job System
+Global Job Registry
+Central list of all jobs
+Indexed by type, priority, urgency, location
+Job Structure
+Job
+- id
+- type
+- target
+- area
+- required_skill
+- progress
+- reserved_by
+- priority
+- urgency_flag
+- is_valid
+8. Job Lifecycle
+Created
+Available
+Reserved
+In Progress
+Completed
+Invalidated
+9. Area Job Decomposition
+Painted area = job generator
+Each tile becomes individual job
+10. Worker Model
+Unit
+- id
+- position
+- inventory
+- skills
+    - farming
+    - woodcutting
+    - stoneworking
+- needs
+    - hunger
+    - thirst
+- current_job_id
+- state
+11. Job Selection Algorithm
+score =
+    (job.priority * P_WEIGHT)
+  + (urgency_flag ? U_BONUS : 0)
+  + (skill_match * S_WEIGHT)
+  - (distance * D_WEIGHT)
+Rules
+Ignore reserved/invalid jobs
+Select highest score
+Reserve before movement
+12. Reservation System
+One unit per job
+Reserved before movement
+Failure Handling
+Unit death → release job
+Job invalid → notify unit
+Unreachable → mark blocked
+13. Worker State Machine
+IDLE → SELECT_JOB → MOVE → WORK → COMPLETE → REEVALUATE
+Interrupt Rules
+Urgent jobs interrupt non-urgent jobs only
+14. Needs System
+Needs
+Hunger
+Thirst
+Internal Jobs
+Eat
+Drink
+Priority Levels
+Low → Medium → High → Critical
+Effects
+Hunger → reduced efficiency → death
+Thirst → faster degradation
+15. Resource System
+Types
+Raw
+Refined
+Consumables
+Rules
+Items physically exist
+Stack when stored
+Multiple items per tile allowed
+16. Hauling System
+Flow
+Job produces resource
+Resource placed in world
+Haul job generated
+Worker transports to stockpile
+17. Stockpile System (planned)
+Zone-based storage
+Accepts filtered item types
+Generates hauling jobs
+18. Combat System
+Style
+Simple AI (Pikmin-like)
+Player adds tactical depth
+AI Behavior
+Attack nearest
+Basic movement
+Player Advantage
+Positioning
+Target selection
+Dodging
+19. Time System
+Real-time in multiplayer
+Optional pause in singleplayer
+20. World Generation
+Parameters
+Size
+Biomes
+Resource density
+Hostility
+21. Save System
+Features
+Multiple slots
+Branching saves
+Data Stored
+World
+Entities
+Players
+Simulation state
+22. Failure Systems
+Environmental effects (future)
+Hostile entities (MVP)
+Needs pressure (hunger/thirst)
+23. Technical Architecture
+Core Systems
+Entity Component System
+Event Bus
+Save/Load System
+Simulation Clock
+24. MVP Scope
+Single biome
+Basic resources (wood → planks)
+Workers + jobs
+Possession system
+Basic combat
+Multiplayer sync
+25. Open Systems To Define Next
+Pathfinding (A*)
+Stockpile rules
+Tool system
+Job priority controls
+Performance constraints
+26. Key Design Decisions (Locked)
+Hybrid voxel + grid simulation
+Real-time multiplayer
+Physical item logistics
+Global job registry
+Semi-autonomous workers
+Possession-based micro gameplay

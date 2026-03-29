@@ -1,0 +1,118 @@
+[gd_resource type="Resource" script_class="InputContextBindings" load_steps=30 format=3]
+
+[ext_resource type="Script" path="res://scripts/input/input_context_bindings.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/input/action_definition.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/input/action_binding.gd" id="3"]
+
+[sub_resource type="Resource" id="action_select"]
+script = ExtResource("2")
+action_name = "select"
+action_type = 0
+
+[sub_resource type="Resource" id="action_camera_pan"]
+script = ExtResource("2")
+action_name = "camera_pan"
+action_type = 2
+
+[sub_resource type="Resource" id="action_camera_zoom_in"]
+script = ExtResource("2")
+action_name = "camera_zoom_in"
+action_type = 0
+
+[sub_resource type="Resource" id="action_camera_zoom_out"]
+script = ExtResource("2")
+action_name = "camera_zoom_out"
+action_type = 0
+
+[sub_resource type="InputEventJoypadButton" id="gp_select_evt"]
+button_index = 0
+
+[sub_resource type="Resource" id="gp_select"]
+script = ExtResource("3")
+action_name = "select"
+events = Array[InputEvent]([SubResource("gp_select_evt")])
+
+[sub_resource type="InputEventJoypadMotion" id="gp_camera_pan_left_evt"]
+axis = 0
+axis_value = -1.0
+
+[sub_resource type="InputEventJoypadMotion" id="gp_camera_pan_right_evt"]
+axis = 0
+axis_value = 1.0
+
+[sub_resource type="InputEventJoypadMotion" id="gp_camera_pan_up_evt"]
+axis = 1
+axis_value = -1.0
+
+[sub_resource type="InputEventJoypadMotion" id="gp_camera_pan_down_evt"]
+axis = 1
+axis_value = 1.0
+
+[sub_resource type="Resource" id="gp_camera_pan"]
+script = ExtResource("3")
+action_name = "camera_pan"
+events = Array[InputEvent]([SubResource("gp_camera_pan_left_evt"), SubResource("gp_camera_pan_right_evt"), SubResource("gp_camera_pan_up_evt"), SubResource("gp_camera_pan_down_evt")])
+
+[sub_resource type="InputEventJoypadButton" id="gp_camera_zoom_in_evt"]
+button_index = 13
+
+[sub_resource type="Resource" id="gp_camera_zoom_in"]
+script = ExtResource("3")
+action_name = "camera_zoom_in"
+events = Array[InputEvent]([SubResource("gp_camera_zoom_in_evt")])
+
+[sub_resource type="InputEventJoypadButton" id="gp_camera_zoom_out_evt"]
+button_index = 12
+
+[sub_resource type="Resource" id="gp_camera_zoom_out"]
+script = ExtResource("3")
+action_name = "camera_zoom_out"
+events = Array[InputEvent]([SubResource("gp_camera_zoom_out_evt")])
+
+[sub_resource type="InputEventMouseButton" id="kb_select_evt"]
+button_index = 1
+
+[sub_resource type="Resource" id="kb_select"]
+script = ExtResource("3")
+action_name = "select"
+events = Array[InputEvent]([SubResource("kb_select_evt")])
+
+[sub_resource type="InputEventKey" id="kb_camera_pan_w_evt"]
+keycode = 87
+
+[sub_resource type="InputEventKey" id="kb_camera_pan_s_evt"]
+keycode = 83
+
+[sub_resource type="InputEventKey" id="kb_camera_pan_a_evt"]
+keycode = 65
+
+[sub_resource type="InputEventKey" id="kb_camera_pan_d_evt"]
+keycode = 68
+
+[sub_resource type="Resource" id="kb_camera_pan"]
+script = ExtResource("3")
+action_name = "camera_pan"
+events = Array[InputEvent]([SubResource("kb_camera_pan_w_evt"), SubResource("kb_camera_pan_s_evt"), SubResource("kb_camera_pan_a_evt"), SubResource("kb_camera_pan_d_evt")])
+
+[sub_resource type="InputEventMouseButton" id="kb_camera_zoom_in_evt"]
+button_index = 4
+
+[sub_resource type="Resource" id="kb_camera_zoom_in"]
+script = ExtResource("3")
+action_name = "camera_zoom_in"
+events = Array[InputEvent]([SubResource("kb_camera_zoom_in_evt")])
+
+[sub_resource type="InputEventMouseButton" id="kb_camera_zoom_out_evt"]
+button_index = 5
+
+[sub_resource type="Resource" id="kb_camera_zoom_out"]
+script = ExtResource("3")
+action_name = "camera_zoom_out"
+events = Array[InputEvent]([SubResource("kb_camera_zoom_out_evt")])
+
+[resource]
+script = ExtResource("1")
+context_name = "isometric"
+actions = Array[Resource]([SubResource("action_select"), SubResource("action_camera_pan"), SubResource("action_camera_zoom_in"), SubResource("action_camera_zoom_out")])
+gamepad_bindings = Array[Resource]([SubResource("gp_select"), SubResource("gp_camera_pan"), SubResource("gp_camera_zoom_in"), SubResource("gp_camera_zoom_out")])
+keyboard_mouse_bindings = Array[Resource]([SubResource("kb_select"), SubResource("kb_camera_pan"), SubResource("kb_camera_zoom_in"), SubResource("kb_camera_zoom_out")])

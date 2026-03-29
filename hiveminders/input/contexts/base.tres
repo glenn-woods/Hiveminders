@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="InputContextBindings" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/input/input_context_bindings.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/input/action_definition.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/input/action_binding.gd" id="3"]
+
+[sub_resource type="Resource" id="action_pause"]
+script = ExtResource("2")
+action_name = "pause"
+action_type = 0
+
+[sub_resource type="Resource" id="action_toggle_mode"]
+script = ExtResource("2")
+action_name = "toggle_mode"
+action_type = 0
+
+[sub_resource type="InputEventJoypadButton" id="gp_pause_evt"]
+button_index = 6
+
+[sub_resource type="Resource" id="gp_pause"]
+script = ExtResource("3")
+action_name = "pause"
+events = Array[InputEvent]([SubResource("gp_pause_evt")])
+
+[sub_resource type="InputEventJoypadButton" id="gp_toggle_mode_evt"]
+button_index = 4
+
+[sub_resource type="Resource" id="gp_toggle_mode"]
+script = ExtResource("3")
+action_name = "toggle_mode"
+events = Array[InputEvent]([SubResource("gp_toggle_mode_evt")])
+
+[sub_resource type="InputEventKey" id="kb_pause_evt"]
+keycode = 4194305
+
+[sub_resource type="Resource" id="kb_pause"]
+script = ExtResource("3")
+action_name = "pause"
+events = Array[InputEvent]([SubResource("kb_pause_evt")])
+
+[sub_resource type="InputEventKey" id="kb_toggle_mode_evt"]
+keycode = 4194306
+
+[sub_resource type="Resource" id="kb_toggle_mode"]
+script = ExtResource("3")
+action_name = "toggle_mode"
+events = Array[InputEvent]([SubResource("kb_toggle_mode_evt")])
+
+[resource]
+script = ExtResource("1")
+context_name = "base"
+actions = Array[Resource]([SubResource("action_pause"), SubResource("action_toggle_mode")])
+gamepad_bindings = Array[Resource]([SubResource("gp_pause"), SubResource("gp_toggle_mode")])
+keyboard_mouse_bindings = Array[Resource]([SubResource("kb_pause"), SubResource("kb_toggle_mode")])
