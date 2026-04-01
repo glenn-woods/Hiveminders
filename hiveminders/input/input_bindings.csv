@@ -8,10 +8,13 @@ isometric,camera_pan_up,BOOL,joy_axis:1:-1.0,key:W
 isometric,camera_pan_down,BOOL,joy_axis:1:1.0,key:S
 isometric,camera_zoom_in,BOOL,joy_button:11,mouse_button:4
 isometric,camera_zoom_out,BOOL,joy_button:12,mouse_button:5
-third_person,move_left,BOOL,joy_axis:0:-1.0,key:A
-third_person,move_right,BOOL,joy_axis:0:1.0,key:D
+third_person,move_left,BOOL,joy_axis:0:1.0,key:A
+third_person,move_right,BOOL,joy_axis:0:-1.0,key:D
 third_person,move_up,BOOL,joy_axis:1:-1.0,key:W
 third_person,move_down,BOOL,joy_axis:1:1.0,key:S
 third_person,interact,BOOL,joy_button:0,key:E
 third_person,attack,BOOL,joy_button:2,mouse_button:1
-third_person
+third_person,look_left,BOOL,joy_axis:2:-1.0,
+third_person,look_right,BOOL,joy_axis:2:1.0,
+third_person,look_up,BOOL,joy_axis:3:-1.0,
+third_person,look_down,BOOL,joy_axis:3:1.0,

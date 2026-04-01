@@ -4,3 +4,9 @@ res://input/input_bindings.keyboard.translation
 res://scripts/test_input_system.gd
 res://scripts/input/input_system.gd
 res://scripts/main_scene.gd
+res://scripts/world/type_registry.gd
+res://scripts/world/voxel_mesh_generator.gd
+res://scripts/player.gd
+res://scripts/input/csv_bindings_parser.gd
+res://scripts/third_person_camera.gd
+res://scripts/world/tile_grid.gd

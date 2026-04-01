@@ -1,104 +1,212 @@
 class_name VoxelMeshGenerator
 extends RefCounted
 
-const FLOOR_HEIGHT_RATIO: float = 0.125  # 1/8th of a block
+## Height of a floor slab relative to a full block (1.0).
+const FLOOR_HEIGHT_RATIO: float = 0.125
 
-# Cardinal face directions in grid space (x, y, z where z is vertical)
-const FACE_DIRS := [
-	Vector3i(1, 0, 0),
-	Vector3i(-1, 0, 0),
-	Vector3i(0, 1, 0),
-	Vector3i(0, -1, 0),
-	Vector3i(0, 0, 1),
-	Vector3i(0, 0, -1),
+## The six cardinal directions in grid space.
+const FACE_DIRS: Array[Vector3i] = [
+	Vector3i(1, 0, 0), Vector3i(-1, 0, 0),
+	Vector3i(0, 1, 0), Vector3i(0, -1, 0),
+	Vector3i(0, 0, 1), Vector3i(0, 0, -1),
 ]
 
+var _grid: TileGrid
+var _registry: Node  # TypeRegistry autoload
 
-## Returns true if the face at (x,y,z) in direction dir should be rendered.
-## A face is rendered when the neighbor is air or out of bounds.
-static func _should_render_face(grid: TileGrid, x: int, y: int, z: int, dir: Vector3i) -> bool:
-	var nx := x + dir.x
-	var ny := y + dir.y
-	var nz := z + dir.z
-	if not grid.is_in_bounds(nx, ny, nz):
+
+func _init(grid: TileGrid, registry: Node) -> void:
+	_grid = grid
+	_registry = registry
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+## Generates an ArrayMesh for a single z-level.
+## Returns null if z is out of bounds or no geometry was produced.
+func generate_z_level_mesh(z: int) -> ArrayMesh:
+	if z < 0 or z >= _grid.z_size:
+		return null
+
+	# material -> {st: SurfaceTool, count: int}
+	var surfaces: Dictionary = {}
+
+	for x in range(_grid.x_size):
+		for y in range(_grid.y_size):
+			_emit_block_geometry(x, y, z, surfaces)
+			_emit_floor_geometry(x, y, z, surfaces)
+
+	if surfaces.is_empty():
+		return null
+
+	var mesh: ArrayMesh = ArrayMesh.new()
+	for mat: StandardMaterial3D in surfaces:
+		var entry: Dictionary = surfaces[mat]
+		var st: SurfaceTool = entry["st"]
+		st.set_material(mat)
+		st.commit(mesh)
+	return mesh
+
+
+# ---------------------------------------------------------------------------
+# Block geometry
+# ---------------------------------------------------------------------------
+
+func _emit_block_geometry(x: int, y: int, z: int, surfaces: Dictionary) -> void:
+	var block_id: String = _grid.get_block(x, y, z)
+	var block_def: BlockTypeDef = _registry.get_block_type(block_id)
+	if block_def == null or block_def.is_air:
+		return
+	var mat: StandardMaterial3D = block_def.material
+	if mat == null:
+		return
+
+	var entry: Dictionary = _get_or_create_surface(surfaces, mat)
+	var st: SurfaceTool = entry["st"]
+
+	for dir: Vector3i in FACE_DIRS:
+		if _should_render_face(x, y, z, dir):
+			var verts: Array = _cube_face_verts(float(x), float(y), float(z), dir)
+			var normal: Vector3 = _dir_to_normal(dir)
+			_add_quad(st, verts, normal, entry)
+
+
+# ---------------------------------------------------------------------------
+# Floor slab geometry
+# ---------------------------------------------------------------------------
+
+func _emit_floor_geometry(x: int, y: int, z: int, surfaces: Dictionary) -> void:
+	var floor_id: String = _grid.get_floor(x, y, z)
+	var floor_def: FloorTypeDef = _registry.get_floor_type(floor_id)
+	if floor_def == null or floor_def.is_empty:
+		return
+
+	# Skip if this tile has a solid block (block covers the floor)
+	var block_id: String = _grid.get_block(x, y, z)
+	var block_def: BlockTypeDef = _registry.get_block_type(block_id)
+	if block_def != null and not block_def.is_air:
+		return
+
+	# Skip if block above is solid (floor hidden by ceiling)
+	if z + 1 < _grid.z_size:
+		var above_id: String = _grid.get_block(x, y, z + 1)
+		var above_def: BlockTypeDef = _registry.get_block_type(above_id)
+		if above_def != null and not above_def.is_air:
+			return
+
+	var mat: StandardMaterial3D = floor_def.material
+	if mat == null:
+		return
+
+	var entry: Dictionary = _get_or_create_surface(surfaces, mat)
+	var st: SurfaceTool = entry["st"]
+
+	# World origin: grid (x,y,z) -> world Vector3(x, z, y)
+	var wx: float = float(x)
+	var wy: float = float(z)
+	var wz: float = float(y)
+	var h: float = FLOOR_HEIGHT_RATIO
+
+	# Top face (always visible for exposed floor)
+	_add_quad(st, [
+		Vector3(wx,       wy + h, wz      ),
+		Vector3(wx + 1.0, wy + h, wz      ),
+		Vector3(wx + 1.0, wy + h, wz + 1.0),
+		Vector3(wx,       wy + h, wz + 1.0),
+	], Vector3(0, 1, 0), entry)
+
+	# Bottom face
+	_add_quad(st, [
+		Vector3(wx,       wy, wz + 1.0),
+		Vector3(wx + 1.0, wy, wz + 1.0),
+		Vector3(wx + 1.0, wy, wz      ),
+		Vector3(wx,       wy, wz      ),
+	], Vector3(0, -1, 0), entry)
+
+	# Side faces — cull if neighbor has same floor material
+	var side_checks: Array = [
+		[Vector3i(1, 0, 0),  Vector3(1, 0, 0)],
+		[Vector3i(-1, 0, 0), Vector3(-1, 0, 0)],
+		[Vector3i(0, 1, 0),  Vector3(0, 0, 1)],
+		[Vector3i(0, -1, 0), Vector3(0, 0, -1)],
+	]
+	for check: Array in side_checks:
+		var grid_dir: Vector3i = check[0]
+		var world_normal: Vector3 = check[1]
+		var nx: int = x + grid_dir.x
+		var ny: int = y + grid_dir.y
+		if _grid.is_in_bounds(nx, ny, z) and _grid.get_floor(nx, ny, z) == floor_id:
+			continue  # Same floor material — cull shared face
+		_add_quad(st, _floor_side_verts(wx, wy, wz, h, grid_dir), world_normal, entry)
+
+
+# ---------------------------------------------------------------------------
+# Face culling
+# ---------------------------------------------------------------------------
+
+func _should_render_face(x: int, y: int, z: int, dir: Vector3i) -> bool:
+	var nx: int = x + dir.x
+	var ny: int = y + dir.y
+	var nz: int = z + dir.z
+	if not _grid.is_in_bounds(nx, ny, nz):
+		return true  # Boundary face — always render
+	var neighbor_id: String = _grid.get_block(nx, ny, nz)
+	var neighbor_def: BlockTypeDef = _registry.get_block_type(neighbor_id)
+	if neighbor_def == null:
 		return true
-	var neighbor_block := grid.get_block(nx, ny, nz)
-	var block_def := TypeRegistry.get_block_type(neighbor_block)
-	if block_def == null:
-		return true
-	return block_def.is_air
+	return neighbor_def.is_air
 
 
-## Adds a quad (two triangles) to the SurfaceTool with absolute index offset tracking.
-static func _add_quad_indexed(st: SurfaceTool, verts: Array, normal: Vector3, index_offset: int) -> void:
-	for v in verts:
+# ---------------------------------------------------------------------------
+# Geometry helpers
+# ---------------------------------------------------------------------------
+
+func _get_or_create_surface(surfaces: Dictionary, mat: StandardMaterial3D) -> Dictionary:
+	if not surfaces.has(mat):
+		var st: SurfaceTool = SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		surfaces[mat] = {"st": st, "count": 0}
+	return surfaces[mat]
+
+
+func _add_quad(st: SurfaceTool, verts: Array, normal: Vector3, entry: Dictionary) -> void:
+	var offset: int = entry["count"]
+	for v: Vector3 in verts:
 		st.set_normal(normal)
 		st.add_vertex(v)
-	st.add_index(index_offset + 0)
-	st.add_index(index_offset + 1)
-	st.add_index(index_offset + 2)
-	st.add_index(index_offset + 0)
-	st.add_index(index_offset + 2)
-	st.add_index(index_offset + 3)
+	st.add_index(offset + 0)
+	st.add_index(offset + 1)
+	st.add_index(offset + 2)
+	st.add_index(offset + 0)
+	st.add_index(offset + 2)
+	st.add_index(offset + 3)
+	entry["count"] = offset + 4
 
 
-## Returns the 4 vertices for a cube face given the block origin and direction.
-## Grid coords: x=right, y=forward, z=up. World coords: x=x, y=z(grid), z=y(grid).
-## So world = Vector3(gx, gz, gy).
-static func _cube_face_verts(gx: float, gy: float, gz: float, dir: Vector3i) -> Array:
-	# World origin of this block
-	var ox := gx
-	var oy := gz       # world Y = grid Z
-	var oz := gy       # world Z = grid Y
-
+## Grid (x,y,z) -> world Vector3(x, z, y). z-up in grid = y-up in Godot.
+func _cube_face_verts(gx: float, gy: float, gz: float, dir: Vector3i) -> Array:
+	var ox: float = gx
+	var oy: float = gz  # world Y = grid Z
+	var oz: float = gy  # world Z = grid Y
 	match dir:
-		Vector3i(1, 0, 0):   # +X face (world +X)
-			return [
-				Vector3(ox + 1, oy,     oz    ),
-				Vector3(ox + 1, oy,     oz + 1),
-				Vector3(ox + 1, oy + 1, oz + 1),
-				Vector3(ox + 1, oy + 1, oz    ),
-			]
-		Vector3i(-1, 0, 0):  # -X face (world -X)
-			return [
-				Vector3(ox,     oy,     oz + 1),
-				Vector3(ox,     oy,     oz    ),
-				Vector3(ox,     oy + 1, oz    ),
-				Vector3(ox,     oy + 1, oz + 1),
-			]
-		Vector3i(0, 1, 0):   # +Y face (world +Z)
-			return [
-				Vector3(ox,     oy,     oz + 1),
-				Vector3(ox + 1, oy,     oz + 1),
-				Vector3(ox + 1, oy + 1, oz + 1),
-				Vector3(ox,     oy + 1, oz + 1),
-			]
-		Vector3i(0, -1, 0):  # -Y face (world -Z)
-			return [
-				Vector3(ox + 1, oy,     oz    ),
-				Vector3(ox,     oy,     oz    ),
-				Vector3(ox,     oy + 1, oz    ),
-				Vector3(ox + 1, oy + 1, oz    ),
-			]
-		Vector3i(0, 0, 1):   # +Z face (world +Y, top)
-			return [
-				Vector3(ox,     oy + 1, oz    ),
-				Vector3(ox + 1, oy + 1, oz    ),
-				Vector3(ox + 1, oy + 1, oz + 1),
-				Vector3(ox,     oy + 1, oz + 1),
-			]
-		Vector3i(0, 0, -1):  # -Z face (world -Y, bottom)
-			return [
-				Vector3(ox,     oy,     oz + 1),
-				Vector3(ox + 1, oy,     oz + 1),
-				Vector3(ox + 1, oy,     oz    ),
-				Vector3(ox,     oy,     oz    ),
-			]
+		Vector3i(1, 0, 0):
+			return [Vector3(ox+1,oy,oz), Vector3(ox+1,oy,oz+1), Vector3(ox+1,oy+1,oz+1), Vector3(ox+1,oy+1,oz)]
+		Vector3i(-1, 0, 0):
+			return [Vector3(ox,oy,oz+1), Vector3(ox,oy,oz), Vector3(ox,oy+1,oz), Vector3(ox,oy+1,oz+1)]
+		Vector3i(0, 1, 0):
+			return [Vector3(ox,oy,oz+1), Vector3(ox+1,oy,oz+1), Vector3(ox+1,oy+1,oz+1), Vector3(ox,oy+1,oz+1)]
+		Vector3i(0, -1, 0):
+			return [Vector3(ox+1,oy,oz), Vector3(ox,oy,oz), Vector3(ox,oy+1,oz), Vector3(ox+1,oy+1,oz)]
+		Vector3i(0, 0, 1):
+			return [Vector3(ox,oy+1,oz), Vector3(ox+1,oy+1,oz), Vector3(ox+1,oy+1,oz+1), Vector3(ox,oy+1,oz+1)]
+		Vector3i(0, 0, -1):
+			return [Vector3(ox,oy,oz+1), Vector3(ox+1,oy,oz+1), Vector3(ox+1,oy,oz), Vector3(ox,oy,oz)]
 	return []
 
 
-## Returns the world-space normal for a grid-space direction.
-static func _dir_to_normal(dir: Vector3i) -> Vector3:
+func _dir_to_normal(dir: Vector3i) -> Vector3:
 	match dir:
 		Vector3i(1, 0, 0):  return Vector3(1, 0, 0)
 		Vector3i(-1, 0, 0): return Vector3(-1, 0, 0)
@@ -109,167 +217,14 @@ static func _dir_to_normal(dir: Vector3i) -> Vector3:
 	return Vector3.ZERO
 
 
-## Generates an ArrayMesh for a single z-level of the grid.
-## Returns null if z is out of bounds or no geometry was generated.
-static func generate_z_level_mesh(grid: TileGrid, z: int) -> ArrayMesh:
-	if z < 0 or z >= grid.z_size:
-		return null
-
-	# material -> SurfaceTool
-	var surfaces: Dictionary = {}
-	# material -> current vertex index offset
-	var vertex_counts: Dictionary = {}
-
-	for x in range(grid.x_size):
-		for y in range(grid.y_size):
-			var block_id := grid.get_block(x, y, z)
-			var block_def: BlockTypeDef = TypeRegistry.get_block_type(block_id)
-
-			# --- Cube geometry for non-air blocks ---
-			if block_def != null and not block_def.is_air:
-				var mat := block_def.material
-				if mat != null:
-					if not surfaces.has(mat):
-						var st := SurfaceTool.new()
-						st.begin(Mesh.PRIMITIVE_TRIANGLES)
-						surfaces[mat] = st
-						vertex_counts[mat] = 0
-
-					var st: SurfaceTool = surfaces[mat]
-					for dir in FACE_DIRS:
-						if _should_render_face(grid, x, y, z, dir):
-							var verts := _cube_face_verts(float(x), float(y), float(z), dir)
-							var normal := _dir_to_normal(dir)
-							var offset: int = vertex_counts[mat]
-							_add_quad_indexed(st, verts, normal, offset)
-							vertex_counts[mat] = offset + 4
-
-			# --- Floor slab geometry ---
-			var floor_id := grid.get_floor(x, y, z)
-			var floor_def: FloorTypeDef = TypeRegistry.get_floor_type(floor_id)
-
-			if floor_def != null and not floor_def.is_empty:
-				# Only render floor when block above is air (or at top z-level)
-				var block_above_is_air := true
-				if z + 1 < grid.z_size:
-					var above_id := grid.get_block(x, y, z + 1)
-					var above_def: BlockTypeDef = TypeRegistry.get_block_type(above_id)
-					if above_def != null and not above_def.is_air:
-						block_above_is_air = false
-
-				# Also skip if this tile has a non-air block (block covers the floor)
-				var this_block_is_air := (block_def == null or block_def.is_air)
-
-				if block_above_is_air and this_block_is_air:
-					var mat := floor_def.material
-					if mat != null:
-						if not surfaces.has(mat):
-							var st := SurfaceTool.new()
-							st.begin(Mesh.PRIMITIVE_TRIANGLES)
-							surfaces[mat] = st
-							vertex_counts[mat] = 0
-
-						var st: SurfaceTool = surfaces[mat]
-						_add_floor_slab(grid, st, vertex_counts, mat, x, y, z, floor_id)
-
-	if surfaces.is_empty():
-		return null
-
-	var mesh := ArrayMesh.new()
-	for mat in surfaces:
-		var st: SurfaceTool = surfaces[mat]
-		st.set_material(mat)
-		st.commit(mesh)
-
-	return mesh
-
-
-## Adds floor slab geometry for tile (x, y, z).
-## The slab sits at the bottom of the cell with height FLOOR_HEIGHT_RATIO.
-static func _add_floor_slab(
-	grid: TileGrid,
-	st: SurfaceTool,
-	vertex_counts: Dictionary,
-	mat: StandardMaterial3D,
-	x: int, y: int, z: int,
-	floor_id: String
-) -> void:
-	# World origin: Vector3(x, z, y) — grid z maps to world Y
-	var wx := float(x)
-	var wy := float(z)          # world Y = grid Z (bottom of cell)
-	var wz := float(y)          # world Z = grid Y
-	var h := FLOOR_HEIGHT_RATIO
-
-	# Top face (always rendered for visible floor)
-	var top_normal := Vector3(0, 1, 0)
-	var top_verts := [
-		Vector3(wx,       wy + h, wz      ),
-		Vector3(wx + 1.0, wy + h, wz      ),
-		Vector3(wx + 1.0, wy + h, wz + 1.0),
-		Vector3(wx,       wy + h, wz + 1.0),
-	]
-	var offset: int = vertex_counts[mat]
-	_add_quad_indexed(st, top_verts, top_normal, offset)
-	vertex_counts[mat] = offset + 4
-
-	# Side faces: +X, -X, +Z, -Z in world space (= +x, -x, +y, -y in grid space)
-	# Cull a side if the neighbor has the same floor material (adjacent slab)
-	var side_dirs := [
-		Vector3i(1, 0, 0),   # world +X = grid +x
-		Vector3i(-1, 0, 0),  # world -X = grid -x
-		Vector3i(0, 1, 0),   # world +Z = grid +y
-		Vector3i(0, -1, 0),  # world -Z = grid -y
-	]
-
-	for dir in side_dirs:
-		var nx := x + dir.x
-		var ny := y + dir.y
-		# Check if neighbor has same floor material — if so, cull this side
-		var render_side := true
-		if grid.is_in_bounds(nx, ny, z):
-			var neighbor_floor_id := grid.get_floor(nx, ny, z)
-			if neighbor_floor_id == floor_id:
-				render_side = false
-
-		if render_side:
-			var side_verts := _floor_slab_side_verts(wx, wy, wz, h, dir)
-			var side_normal := _dir_to_normal(dir)
-			offset = vertex_counts[mat]
-			_add_quad_indexed(st, side_verts, side_normal, offset)
-			vertex_counts[mat] = offset + 4
-
-
-## Returns the 4 vertices for a floor slab side face.
-## wx, wy, wz: world-space origin of the tile. h: slab height.
-## dir: grid-space direction (only x and y components used for horizontal sides).
-static func _floor_slab_side_verts(wx: float, wy: float, wz: float, h: float, dir: Vector3i) -> Array:
+func _floor_side_verts(wx: float, wy: float, wz: float, h: float, dir: Vector3i) -> Array:
 	match dir:
-		Vector3i(1, 0, 0):   # world +X side
-			return [
-				Vector3(wx + 1.0, wy,     wz      ),
-				Vector3(wx + 1.0, wy,     wz + 1.0),
-				Vector3(wx + 1.0, wy + h, wz + 1.0),
-				Vector3(wx + 1.0, wy + h, wz      ),
-			]
-		Vector3i(-1, 0, 0):  # world -X side
-			return [
-				Vector3(wx,       wy,     wz + 1.0),
-				Vector3(wx,       wy,     wz      ),
-				Vector3(wx,       wy + h, wz      ),
-				Vector3(wx,       wy + h, wz + 1.0),
-			]
-		Vector3i(0, 1, 0):   # world +Z side (grid +Y)
-			return [
-				Vector3(wx,       wy,     wz + 1.0),
-				Vector3(wx + 1.0, wy,     wz + 1.0),
-				Vector3(wx + 1.0, wy + h, wz + 1.0),
-				Vector3(wx,       wy + h, wz + 1.0),
-			]
-		Vector3i(0, -1, 0):  # world -Z side (grid -Y)
-			return [
-				Vector3(wx + 1.0, wy,     wz      ),
-				Vector3(wx,       wy,     wz      ),
-				Vector3(wx,       wy + h, wz      ),
-				Vector3(wx + 1.0, wy + h, wz      ),
-			]
+		Vector3i(1, 0, 0):
+			return [Vector3(wx+1,wy,wz), Vector3(wx+1,wy,wz+1), Vector3(wx+1,wy+h,wz+1), Vector3(wx+1,wy+h,wz)]
+		Vector3i(-1, 0, 0):
+			return [Vector3(wx,wy,wz+1), Vector3(wx,wy,wz), Vector3(wx,wy+h,wz), Vector3(wx,wy+h,wz+1)]
+		Vector3i(0, 1, 0):
+			return [Vector3(wx,wy,wz+1), Vector3(wx+1,wy,wz+1), Vector3(wx+1,wy+h,wz+1), Vector3(wx,wy+h,wz+1)]
+		Vector3i(0, -1, 0):
+			return [Vector3(wx+1,wy,wz), Vector3(wx,wy,wz), Vector3(wx,wy+h,wz), Vector3(wx+1,wy+h,wz)]
 	return []

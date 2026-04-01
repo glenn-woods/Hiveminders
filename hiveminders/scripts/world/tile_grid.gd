@@ -10,6 +10,11 @@ var _floor_ids: PackedStringArray
 var _components: Dictionary = {}
 var _dirty_levels: Dictionary = {}
 
+## Rendering and collision — managed internally per z-level.
+var _mesh_gen: VoxelMeshGenerator = null
+var _z_level_meshes: Dictionary = {}   # int -> MeshInstance3D
+var _z_level_bodies: Dictionary = {}   # int -> StaticBody3D
+
 
 func _ready() -> void:
 	initialize()
@@ -122,3 +127,65 @@ func get_z_level(z: int):
 				"components": get_components(x, y, z)
 			}
 	return result
+
+
+# ---------------------------------------------------------------------------
+# Rendering and collision
+# ---------------------------------------------------------------------------
+
+## Call once after initialize() to set up the mesh generator.
+## registry should be the TypeRegistry autoload node.
+func setup_rendering(registry: Node) -> void:
+	_mesh_gen = VoxelMeshGenerator.new(self, registry)
+
+
+## Generates meshes and collision for all z-levels. Call after populating tiles.
+func build_all_meshes() -> void:
+	if _mesh_gen == null:
+		push_warning("TileGrid: setup_rendering() must be called before build_all_meshes().")
+		return
+	for z in range(z_size):
+		_rebuild_z_level(z)
+	_dirty_levels.clear()
+
+
+## Call each frame (or when needed) to rebuild any dirty z-levels.
+func rebuild_dirty_levels() -> void:
+	if _mesh_gen == null or _dirty_levels.is_empty():
+		return
+	for z: int in _dirty_levels.keys():
+		_rebuild_z_level(z)
+	_dirty_levels.clear()
+
+
+## Rebuilds the mesh and collision for a single z-level.
+func _rebuild_z_level(z: int) -> void:
+	# Free existing nodes
+	if _z_level_meshes.has(z):
+		_z_level_meshes[z].queue_free()
+		_z_level_meshes.erase(z)
+	if _z_level_bodies.has(z):
+		_z_level_bodies[z].queue_free()
+		_z_level_bodies.erase(z)
+
+	var mesh: ArrayMesh = _mesh_gen.generate_z_level_mesh(z)
+	if mesh == null:
+		return
+
+	# Visual mesh
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	add_child(mi)
+	_z_level_meshes[z] = mi
+
+	# Collision from mesh faces
+	var faces: PackedVector3Array = mesh.get_faces()
+	if faces.size() > 0:
+		var body := StaticBody3D.new()
+		var shape := ConcavePolygonShape3D.new()
+		shape.set_faces(faces)
+		var col := CollisionShape3D.new()
+		col.shape = shape
+		body.add_child(col)
+		add_child(body)
+		_z_level_bodies[z] = body

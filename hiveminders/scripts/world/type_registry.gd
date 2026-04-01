@@ -1,4 +1,3 @@
-class_name TypeRegistry
 extends Node
 
 @export var block_types_path: String = "res://data/block_types.csv"
