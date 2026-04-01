@@ -1,0 +1,4 @@
+type_id,display_name,is_empty,color
+empty,Empty,true,
+stone,Stone,false,#808080
+dirt,Dirt,false,#8B6914

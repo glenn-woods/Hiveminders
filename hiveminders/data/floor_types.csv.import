@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c3jj27lcermbv"
+
+[deps]
+
+files=["res://data/floor_types.display.translation", "res://data/floor_types.is.translation", "res://data/floor_types.color.translation"]
+
+source_file="res://data/floor_types.csv"
+dest_files=["res://data/floor_types.display.translation", "res://data/floor_types.is.translation", "res://data/floor_types.color.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

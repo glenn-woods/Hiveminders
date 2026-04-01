@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ccphh0y12td5"
+
+[deps]
+
+files=["res://data/block_types.display.translation", "res://data/block_types.is.translation", "res://data/block_types.color.translation"]
+
+source_file="res://data/block_types.csv"
+dest_files=["res://data/block_types.display.translation", "res://data/block_types.is.translation", "res://data/block_types.color.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
