@@ -3,3 +3,4 @@ res://input/input_bindings.gamepad.translation
 res://input/input_bindings.keyboard.translation
 res://scripts/test_input_system.gd
 res://scripts/input/input_system.gd
+res://scripts/main_scene.gd

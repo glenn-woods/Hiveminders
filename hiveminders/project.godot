@@ -22,3 +22,4 @@ config/icon="res://icon.svg"
 [autoload]
 
 InputSystem="*res://scripts/input/input_system.gd"
+TypeRegistry="*res://scripts/world/type_registry.gd"
