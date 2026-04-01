@@ -29,6 +29,9 @@ enum ActionType { BOOL, AXIS, VECTOR2 }
 ## When true, prints every raw input event as its CSV token to the output.
 @export var debug_input: bool = true
 
+## When true, prints whenever a registered action is pressed.
+@export var debug_actions: bool = true
+
 # ---------------------------------------------------------------------------
 # State
 # ---------------------------------------------------------------------------
@@ -189,6 +192,16 @@ func _input(event: InputEvent) -> void:
 		_active_scheme = detected_scheme
 		_sync_input_map()
 		active_scheme_changed.emit(_active_scheme)
+
+
+## Logs registered actions that were just pressed this frame.
+func _process(_delta: float) -> void:
+	if not debug_actions:
+		return
+	var ctx: String = get_active_context_name()
+	for action_name: String in _registered_actions:
+		if Input.is_action_just_pressed(action_name):
+			print("[action] %s  (context: %s)" % [action_name, ctx])
 
 ## Clears all system-registered actions from InputMap, then rebuilds from the
 ## merged base + top context action definitions and the active scheme's bindings.

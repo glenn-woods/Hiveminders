@@ -186,34 +186,39 @@ func _add_quad(st: SurfaceTool, verts: Array, normal: Vector3, entry: Dictionary
 
 
 ## Grid (x,y,z) -> world Vector3(x, z, y). z-up in grid = y-up in Godot.
+## FACE_DIRS are in grid space. Winding: counter-clockwise viewed from outside.
 func _cube_face_verts(gx: float, gy: float, gz: float, dir: Vector3i) -> Array:
-	var ox: float = gx
-	var oy: float = gz  # world Y = grid Z
-	var oz: float = gy  # world Z = grid Y
+	var x0: float = gx
+	var x1: float = gx + 1.0
+	var y0: float = gz        # world Y = grid Z
+	var y1: float = gz + 1.0
+	var z0: float = gy        # world Z = grid Y
+	var z1: float = gy + 1.0
+
 	match dir:
-		Vector3i(1, 0, 0):
-			return [Vector3(ox+1,oy,oz), Vector3(ox+1,oy,oz+1), Vector3(ox+1,oy+1,oz+1), Vector3(ox+1,oy+1,oz)]
-		Vector3i(-1, 0, 0):
-			return [Vector3(ox,oy,oz+1), Vector3(ox,oy,oz), Vector3(ox,oy+1,oz), Vector3(ox,oy+1,oz+1)]
-		Vector3i(0, 1, 0):
-			return [Vector3(ox,oy,oz+1), Vector3(ox+1,oy,oz+1), Vector3(ox+1,oy+1,oz+1), Vector3(ox,oy+1,oz+1)]
-		Vector3i(0, -1, 0):
-			return [Vector3(ox+1,oy,oz), Vector3(ox,oy,oz), Vector3(ox,oy+1,oz), Vector3(ox+1,oy+1,oz)]
-		Vector3i(0, 0, 1):
-			return [Vector3(ox,oy+1,oz), Vector3(ox+1,oy+1,oz), Vector3(ox+1,oy+1,oz+1), Vector3(ox,oy+1,oz+1)]
-		Vector3i(0, 0, -1):
-			return [Vector3(ox,oy,oz+1), Vector3(ox+1,oy,oz+1), Vector3(ox+1,oy,oz), Vector3(ox,oy,oz)]
+		Vector3i(1, 0, 0):   # grid +X = world +X
+			return [Vector3(x1,y0,z1), Vector3(x1,y1,z1), Vector3(x1,y1,z0), Vector3(x1,y0,z0)]
+		Vector3i(-1, 0, 0):  # grid -X = world -X
+			return [Vector3(x0,y0,z0), Vector3(x0,y1,z0), Vector3(x0,y1,z1), Vector3(x0,y0,z1)]
+		Vector3i(0, 1, 0):   # grid +Y = world +Z
+			return [Vector3(x0,y0,z1), Vector3(x0,y1,z1), Vector3(x1,y1,z1), Vector3(x1,y0,z1)]
+		Vector3i(0, -1, 0):  # grid -Y = world -Z
+			return [Vector3(x1,y0,z0), Vector3(x1,y1,z0), Vector3(x0,y1,z0), Vector3(x0,y0,z0)]
+		Vector3i(0, 0, 1):   # grid +Z = world +Y (top)
+			return [Vector3(x0,y1,z0), Vector3(x1,y1,z0), Vector3(x1,y1,z1), Vector3(x0,y1,z1)]
+		Vector3i(0, 0, -1):  # grid -Z = world -Y (bottom)
+			return [Vector3(x0,y0,z1), Vector3(x1,y0,z1), Vector3(x1,y0,z0), Vector3(x0,y0,z0)]
 	return []
 
 
 func _dir_to_normal(dir: Vector3i) -> Vector3:
 	match dir:
-		Vector3i(1, 0, 0):  return Vector3(1, 0, 0)
-		Vector3i(-1, 0, 0): return Vector3(-1, 0, 0)
-		Vector3i(0, 1, 0):  return Vector3(0, 0, 1)
-		Vector3i(0, -1, 0): return Vector3(0, 0, -1)
-		Vector3i(0, 0, 1):  return Vector3(0, 1, 0)
-		Vector3i(0, 0, -1): return Vector3(0, -1, 0)
+		Vector3i(1, 0, 0):  return Vector3(1, 0, 0)   # grid +X = world +X
+		Vector3i(-1, 0, 0): return Vector3(-1, 0, 0)  # grid -X = world -X
+		Vector3i(0, 1, 0):  return Vector3(0, 0, 1)   # grid +Y = world +Z
+		Vector3i(0, -1, 0): return Vector3(0, 0, -1)  # grid -Y = world -Z
+		Vector3i(0, 0, 1):  return Vector3(0, 1, 0)   # grid +Z = world +Y (up)
+		Vector3i(0, 0, -1): return Vector3(0, -1, 0)  # grid -Z = world -Y (down)
 	return Vector3.ZERO
 
 
@@ -224,7 +229,7 @@ func _floor_side_verts(wx: float, wy: float, wz: float, h: float, dir: Vector3i)
 		Vector3i(-1, 0, 0):
 			return [Vector3(wx,wy,wz+1), Vector3(wx,wy,wz), Vector3(wx,wy+h,wz), Vector3(wx,wy+h,wz+1)]
 		Vector3i(0, 1, 0):
-			return [Vector3(wx,wy,wz+1), Vector3(wx+1,wy,wz+1), Vector3(wx+1,wy+h,wz+1), Vector3(wx,wy+h,wz+1)]
+			return [Vector3(wx+1,wy+h,wz+1), Vector3(wx+1,wy,wz+1), Vector3(wx,wy,wz+1), Vector3(wx,wy+h,wz+1)]
 		Vector3i(0, -1, 0):
-			return [Vector3(wx+1,wy,wz), Vector3(wx,wy,wz), Vector3(wx,wy+h,wz), Vector3(wx+1,wy+h,wz)]
+			return [Vector3(wx,wy+h,wz), Vector3(wx,wy,wz), Vector3(wx+1,wy,wz), Vector3(wx+1,wy+h,wz)]
 	return []

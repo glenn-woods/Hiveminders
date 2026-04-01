@@ -6,9 +6,15 @@ extends CharacterBody3D
 
 @export var move_speed: float = 5.0
 @export var rotation_speed: float = 15.0
+@export var gravity: float = 9.8
+@export var jump_velocity: float = 6.57  # Reaches ~2.2 blocks high
 
 ## Set by the scene to the camera rig so we can read its yaw.
 var camera_rig: Node3D = null
+
+## Double jump state
+var _has_double_jump: bool = false  # Set true when ability is active
+var _jumps_remaining: int = 1
 
 
 func _physics_process(delta: float) -> void:
@@ -16,14 +22,24 @@ func _physics_process(delta: float) -> void:
 	if InputMap.has_action("move_left"):
 		input_dir = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 
-	# Apply gravity
+	# Gravity
 	if not is_on_floor():
-		velocity.y -= 9.8 * delta
+		velocity.y -= gravity * delta
 	else:
 		velocity.y = 0.0
+		_jumps_remaining = 2 if _has_double_jump else 1
 
+	# Jump
+	if InputMap.has_action("jump") and Input.is_action_just_pressed("jump"):
+		if is_on_floor():
+			velocity.y = jump_velocity
+			_jumps_remaining -= 1
+		elif _jumps_remaining > 0:
+			velocity.y = jump_velocity
+			_jumps_remaining -= 1
+
+	# Camera-relative movement
 	if input_dir.length() > 0.1 and camera_rig != null:
-		# Move relative to camera facing direction
 		var cam_yaw: float = atan2(
 			-camera_rig.global_transform.basis.z.x,
 			-camera_rig.global_transform.basis.z.z
@@ -37,7 +53,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 
-	# Always face the camera's yaw direction
+	# Always face camera yaw
 	if camera_rig != null:
 		var cam_yaw: float = atan2(
 			-camera_rig.global_transform.basis.z.x,
