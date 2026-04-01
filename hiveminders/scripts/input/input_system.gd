@@ -22,6 +22,13 @@ enum ActionType { BOOL, AXIS, VECTOR2 }
 ## Name of the context to push onto the stack at startup.
 @export var initial_context: String = "base"
 
+## Path to the CSV bindings file. When non-empty, CSV loading is used
+## instead of scanning the .tres directory.
+@export var csv_bindings_path: String = "res://input/input_bindings.csv"
+
+## When true, prints every raw input event as its CSV token to the output.
+@export var debug_input: bool = true
+
 # ---------------------------------------------------------------------------
 # State
 # ---------------------------------------------------------------------------
@@ -90,7 +97,23 @@ const JOYPAD_MOTION_DEADZONE: float = 0.2
 ## Loads all InputContextBindings resources from the contexts directory,
 ## populates the bindings registry, pushes the initial context, and syncs InputMap.
 func _ready() -> void:
-	_load_bindings_from_directory(contexts_path)
+	if not csv_bindings_path.is_empty():
+		var file := FileAccess.open(csv_bindings_path, FileAccess.READ)
+		if file == null:
+			push_error(
+				"InputSystem: could not open CSV bindings file '%s' — falling back to directory loading." % csv_bindings_path
+			)
+			_load_bindings_from_directory(contexts_path)
+		else:
+			var csv_text := file.get_as_text()
+			file.close()
+			var parse_result := CsvBindingsParser.parse(csv_text, csv_bindings_path)
+			for error in parse_result.errors:
+				push_error("InputSystem (CSV): %s" % error)
+			for binding: InputContextBindings in parse_result.bindings:
+				_bindings_registry[binding.context_name] = binding
+	else:
+		_load_bindings_from_directory(contexts_path)
 
 	if _bindings_registry.is_empty():
 		push_warning("InputSystem: no binding resources found in '%s'." % contexts_path)
@@ -142,14 +165,22 @@ func _input(event: InputEvent) -> void:
 	var detected_scheme: InputScheme
 
 	if event is InputEventJoypadButton:
+		if debug_input and event.pressed:
+			print("[input] %s" % EventTokenParser.event_to_token(event))
 		detected_scheme = InputScheme.GAMEPAD
 	elif event is InputEventJoypadMotion:
 		if absf(event.axis_value) < JOYPAD_MOTION_DEADZONE:
 			return  # Below deadzone — ignore as noise.
+		if debug_input:
+			print("[input] %s" % EventTokenParser.event_to_token(event))
 		detected_scheme = InputScheme.GAMEPAD
 	elif event is InputEventKey:
+		if debug_input and event.pressed:
+			print("[input] %s" % EventTokenParser.event_to_token(event))
 		detected_scheme = InputScheme.KEYBOARD_MOUSE
 	elif event is InputEventMouseButton:
+		if debug_input and event.pressed:
+			print("[input] %s" % EventTokenParser.event_to_token(event))
 		detected_scheme = InputScheme.KEYBOARD_MOUSE
 	else:
 		return  # Unrecognised or ignored event type (e.g. InputEventMouseMotion).
@@ -160,7 +191,9 @@ func _input(event: InputEvent) -> void:
 		active_scheme_changed.emit(_active_scheme)
 
 ## Clears all system-registered actions from InputMap, then rebuilds from the
-## top context's action definitions and the active scheme's bindings.
+## merged base + top context action definitions and the active scheme's bindings.
+## When the stack has more than one context, base (index 0) actions are registered
+## first, then top context actions are layered on top — top wins on name collision.
 func _sync_input_map() -> void:
 	# 1. Erase all actions previously registered by this system.
 	for action_name in _registered_actions:
@@ -171,27 +204,69 @@ func _sync_input_map() -> void:
 	if _context_stack.is_empty():
 		return
 
+	# 3. Identify base and top contexts.
+	var base_context: InputContextBindings = _context_stack[0]
 	var top_context: InputContextBindings = _context_stack.back()
 
-	# 3. Register each ActionDefinition as an InputMap action.
+	# 4. If base == top (stack size 1), register only that context — no merge needed.
+	if base_context == top_context:
+		for action_def: ActionDefinition in base_context.actions:
+			InputMap.add_action(action_def.action_name)
+			_registered_actions.append(action_def.action_name)
+
+		var bindings: Array[ActionBinding]
+		if _active_scheme == InputScheme.GAMEPAD:
+			bindings = base_context.gamepad_bindings
+		else:
+			bindings = base_context.keyboard_mouse_bindings
+
+		for binding: ActionBinding in bindings:
+			if binding.action_name not in _registered_actions:
+				push_warning(
+					"InputSystem: binding references unknown action '%s' in context '%s' — skipping."
+					% [binding.action_name, base_context.context_name]
+				)
+				continue
+			for event: InputEvent in binding.events:
+				InputMap.action_add_event(binding.action_name, event)
+		return
+
+	# 5. Build merged_actions: base first, then top overlays (top wins on collision).
+	var merged_actions: Dictionary = {}  # String → ActionDefinition
+	for action_def: ActionDefinition in base_context.actions:
+		merged_actions[action_def.action_name] = action_def
 	for action_def: ActionDefinition in top_context.actions:
-		InputMap.add_action(action_def.action_name)
-		_registered_actions.append(action_def.action_name)
+		merged_actions[action_def.action_name] = action_def
 
-	# 4. Select the correct binding array for the active scheme.
-	var bindings: Array[ActionBinding]
+	# 6. Register every merged action in InputMap.
+	for action_name: String in merged_actions:
+		InputMap.add_action(action_name)
+		_registered_actions.append(action_name)
+
+	# 7. Build merged_bindings for the active scheme: base first, then top overlays.
+	var merged_bindings: Dictionary = {}  # String → ActionBinding
+	var base_bindings: Array[ActionBinding]
+	var top_bindings: Array[ActionBinding]
 	if _active_scheme == InputScheme.GAMEPAD:
-		bindings = top_context.gamepad_bindings
+		base_bindings = base_context.gamepad_bindings
+		top_bindings = top_context.gamepad_bindings
 	else:
-		bindings = top_context.keyboard_mouse_bindings
+		base_bindings = base_context.keyboard_mouse_bindings
+		top_bindings = top_context.keyboard_mouse_bindings
 
-	# 5. Map each binding's events into InputMap, skipping unknown actions.
-	for binding: ActionBinding in bindings:
-		if binding.action_name not in _registered_actions:
+	for binding: ActionBinding in base_bindings:
+		merged_bindings[binding.action_name] = binding
+	for binding: ActionBinding in top_bindings:
+		merged_bindings[binding.action_name] = binding
+
+	# 8. Attach each merged binding's events to InputMap, skipping unknown actions.
+	for action_name: String in merged_bindings:
+		if action_name not in _registered_actions:
 			push_warning(
-				"InputSystem: binding references unknown action '%s' in context '%s' — skipping."
-				% [binding.action_name, top_context.context_name]
+				"InputSystem: binding references unknown action '%s' — skipping."
+				% action_name
 			)
 			continue
+		var binding: ActionBinding = merged_bindings[action_name]
 		for event: InputEvent in binding.events:
-			InputMap.action_add_event(binding.action_name, event)
+			InputMap.action_add_event(action_name, event)
