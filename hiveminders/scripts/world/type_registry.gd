@@ -69,6 +69,7 @@ func _parse_block_types() -> void:
 				continue
 			mat = StandardMaterial3D.new()
 			mat.albedo_color = Color(color_str)
+			mat.vertex_color_use_as_albedo = true
 
 		var def := BlockTypeDef.new()
 		def.type_id = type_id
@@ -133,6 +134,7 @@ func _parse_floor_types() -> void:
 				continue
 			mat = StandardMaterial3D.new()
 			mat.albedo_color = Color(color_str)
+			mat.vertex_color_use_as_albedo = true
 
 		var def := FloorTypeDef.new()
 		def.type_id = type_id

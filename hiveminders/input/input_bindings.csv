@@ -13,9 +13,15 @@ isometric,camera_pan_up,BOOL,joy_axis:1:-1.0,key:W
 isometric,camera_pan_down,BOOL,joy_axis:1:1.0,key:S
 isometric,camera_zoom_in,BOOL,joy_button:11,mouse_button:4
 isometric,camera_zoom_out,BOOL,joy_button:12,mouse_button:5
+isometric,iso_rotate_left,BOOL,joy_axis:2:-1.0,
+isometric,iso_rotate_right,BOOL,joy_axis:2:1.0,
+isometric,iso_rotate_up,BOOL,joy_axis:3:-1.0,
+isometric,iso_rotate_down,BOOL,joy_axis:3:1.0,
+isometric,cycle_unit_next,BOOL,joy_button:14,key:Period
+isometric,cycle_unit_prev,BOOL,joy_button:13,key:Comma
 isometric,toggle_mode,BOOL,joy_button:4,key:Tab
-third_person,move_left,BOOL,joy_axis:0:1.0,key:A
-third_person,move_right,BOOL,joy_axis:0:-1.0,key:D
+third_person,move_left,BOOL,joy_axis:0:-1.0,key:A
+third_person,move_right,BOOL,joy_axis:0:1.0,key:D
 third_person,move_up,BOOL,joy_axis:1:-1.0,key:W
 third_person,move_down,BOOL,joy_axis:1:1.0,key:S
 third_person,interact,BOOL,joy_button:2,key:E
@@ -26,3 +32,5 @@ third_person,look_up,BOOL,joy_axis:3:-1.0,
 third_person,look_down,BOOL,joy_axis:3:1.0,
 third_person,jump,BOOL,joy_button:0,key:Space
 third_person,toggle_mode,BOOL,joy_button:4,key:Tab
+third_person,cycle_unit_next,BOOL,joy_button:14,key:Period
+third_person,cycle_unit_prev,BOOL,joy_button:13,key:Comma

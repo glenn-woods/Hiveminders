@@ -22,6 +22,15 @@ func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 
+## Retarget the camera to follow a different node.
+## Snaps the camera yaw to sit behind the new target's facing direction.
+func set_target(node: Node3D) -> void:
+	_target = node
+	if _target != null:
+		# Unit rotation.y is its facing yaw — align camera behind it
+		_yaw = _target.rotation.y + PI
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		_yaw -= event.relative.x * mouse_sensitivity

@@ -4,6 +4,9 @@ extends RefCounted
 ## Height of a floor slab relative to a full block (1.0).
 const FLOOR_HEIGHT_RATIO: float = 0.125
 
+## Range of random brightness variation applied per block (±value).
+const SHADE_VARIATION: float = 0.10
+
 ## The six cardinal directions in grid space.
 const FACE_DIRS: Array[Vector3i] = [
 	Vector3i(1, 0, 0), Vector3i(-1, 0, 0),
@@ -66,11 +69,14 @@ func _emit_block_geometry(x: int, y: int, z: int, surfaces: Dictionary) -> void:
 	var entry: Dictionary = _get_or_create_surface(surfaces, mat)
 	var st: SurfaceTool = entry["st"]
 
+	var v: float = 1.0 + randf_range(-SHADE_VARIATION, SHADE_VARIATION)
+	var tint := Color(v, v, v, 1.0)
+
 	for dir: Vector3i in FACE_DIRS:
 		if _should_render_face(x, y, z, dir):
 			var verts: Array = _cube_face_verts(float(x), float(y), float(z), dir)
 			var normal: Vector3 = _dir_to_normal(dir)
-			_add_quad(st, verts, normal, entry)
+			_add_quad(st, verts, normal, entry, tint)
 
 
 # ---------------------------------------------------------------------------
@@ -109,13 +115,16 @@ func _emit_floor_geometry(x: int, y: int, z: int, surfaces: Dictionary) -> void:
 	var wz: float = float(y)
 	var h: float = FLOOR_HEIGHT_RATIO
 
+	var fv: float = 1.0 + randf_range(-SHADE_VARIATION, SHADE_VARIATION)
+	var tint := Color(fv, fv, fv, 1.0)
+
 	# Top face (always visible for exposed floor)
 	_add_quad(st, [
 		Vector3(wx,       wy + h, wz      ),
 		Vector3(wx + 1.0, wy + h, wz      ),
 		Vector3(wx + 1.0, wy + h, wz + 1.0),
 		Vector3(wx,       wy + h, wz + 1.0),
-	], Vector3(0, 1, 0), entry)
+	], Vector3(0, 1, 0), entry, tint)
 
 	# Bottom face
 	_add_quad(st, [
@@ -123,7 +132,7 @@ func _emit_floor_geometry(x: int, y: int, z: int, surfaces: Dictionary) -> void:
 		Vector3(wx + 1.0, wy, wz + 1.0),
 		Vector3(wx + 1.0, wy, wz      ),
 		Vector3(wx,       wy, wz      ),
-	], Vector3(0, -1, 0), entry)
+	], Vector3(0, -1, 0), entry, tint)
 
 	# Side faces — cull if neighbor has same floor material
 	var side_checks: Array = [
@@ -139,7 +148,7 @@ func _emit_floor_geometry(x: int, y: int, z: int, surfaces: Dictionary) -> void:
 		var ny: int = y + grid_dir.y
 		if _grid.is_in_bounds(nx, ny, z) and _grid.get_floor(nx, ny, z) == floor_id:
 			continue  # Same floor material — cull shared face
-		_add_quad(st, _floor_side_verts(wx, wy, wz, h, grid_dir), world_normal, entry)
+		_add_quad(st, _floor_side_verts(wx, wy, wz, h, grid_dir), world_normal, entry, tint)
 
 
 # ---------------------------------------------------------------------------
@@ -171,10 +180,11 @@ func _get_or_create_surface(surfaces: Dictionary, mat: StandardMaterial3D) -> Di
 	return surfaces[mat]
 
 
-func _add_quad(st: SurfaceTool, verts: Array, normal: Vector3, entry: Dictionary) -> void:
+func _add_quad(st: SurfaceTool, verts: Array, normal: Vector3, entry: Dictionary, tint: Color = Color.WHITE) -> void:
 	var offset: int = entry["count"]
 	for v: Vector3 in verts:
 		st.set_normal(normal)
+		st.set_color(tint)
 		st.add_vertex(v)
 	st.add_index(offset + 0)
 	st.add_index(offset + 1)

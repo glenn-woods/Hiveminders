@@ -40,12 +40,15 @@ func _physics_process(delta: float) -> void:
 
 	# Camera-relative movement
 	if input_dir.length() > 0.1 and camera_rig != null:
-		var cam_yaw: float = atan2(
-			-camera_rig.global_transform.basis.z.x,
-			-camera_rig.global_transform.basis.z.z
-		)
-		var forward: Vector3 = Vector3(sin(cam_yaw), 0.0, cos(cam_yaw))
-		var right: Vector3 = Vector3(cos(cam_yaw), 0.0, sin(cam_yaw))
+		# Use the camera's basis directly for world-space forward/right.
+		# Flatten to XZ plane so vertical camera pitch doesn't affect movement.
+		var cam_basis := camera_rig.global_transform.basis
+		var forward := -cam_basis.z
+		forward.y = 0.0
+		forward = forward.normalized()
+		var right := cam_basis.x
+		right.y = 0.0
+		right = right.normalized()
 		var move_dir: Vector3 = (right * input_dir.x + forward * -input_dir.y).normalized()
 		velocity.x = move_dir.x * move_speed
 		velocity.z = move_dir.z * move_speed
@@ -55,10 +58,10 @@ func _physics_process(delta: float) -> void:
 
 	# Always face camera yaw
 	if camera_rig != null:
-		var cam_yaw: float = atan2(
-			-camera_rig.global_transform.basis.z.x,
-			-camera_rig.global_transform.basis.z.z
-		)
-		rotation.y = lerp_angle(rotation.y, cam_yaw, rotation_speed * delta)
+		var cam_forward := -camera_rig.global_transform.basis.z
+		cam_forward.y = 0.0
+		cam_forward = cam_forward.normalized()
+		var target_yaw := atan2(cam_forward.x, cam_forward.z)
+		rotation.y = lerp_angle(rotation.y, target_yaw, rotation_speed * delta)
 
 	move_and_slide()
