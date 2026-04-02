@@ -5,6 +5,9 @@ extends Node3D
 var _gameplay_contexts: Array[String] = ["third_person", "isometric"]
 var _current_index: int = 0
 var _grid: TileGrid
+var _pause_menu: Node = null
+
+const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 
 
 func _ready() -> void:
@@ -34,6 +37,10 @@ func _ready() -> void:
 
 	# Build initial meshes + collision
 	_grid.build_all_meshes()
+
+	# Pause menu
+	_pause_menu = PauseMenuScene.instantiate()
+	add_child(_pause_menu)
 
 
 func _process(_delta: float) -> void:

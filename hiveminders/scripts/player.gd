@@ -45,7 +45,7 @@ func _physics_process(delta: float) -> void:
 			-camera_rig.global_transform.basis.z.z
 		)
 		var forward: Vector3 = Vector3(sin(cam_yaw), 0.0, cos(cam_yaw))
-		var right: Vector3 = Vector3(cos(cam_yaw), 0.0, -sin(cam_yaw))
+		var right: Vector3 = Vector3(cos(cam_yaw), 0.0, sin(cam_yaw))
 		var move_dir: Vector3 = (right * input_dir.x + forward * -input_dir.y).normalized()
 		velocity.x = move_dir.x * move_speed
 		velocity.z = move_dir.z * move_speed

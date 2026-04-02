@@ -10,3 +10,5 @@ res://scripts/player.gd
 res://scripts/input/csv_bindings_parser.gd
 res://scripts/third_person_camera.gd
 res://scripts/world/tile_grid.gd
+res://scenes/ui/pause_menu.tscn
+res://scripts/ui/pause_menu.gd
