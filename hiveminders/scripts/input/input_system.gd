@@ -100,6 +100,11 @@ const JOYPAD_MOTION_DEADZONE: float = 0.2
 ## Loads all InputContextBindings resources from the contexts directory,
 ## populates the bindings registry, pushes the initial context, and syncs InputMap.
 func _ready() -> void:
+	# Explicitly set the default scheme here to avoid enum resolution issues
+	# that can occur when the value is assigned at the variable declaration site.
+	_active_scheme = InputScheme.KEYBOARD_MOUSE
+	print("[InputSystem] _ready: _active_scheme = %d (expected 1 for KEYBOARD_MOUSE)" % _active_scheme)
+
 	if not csv_bindings_path.is_empty():
 		var file := FileAccess.open(csv_bindings_path, FileAccess.READ)
 		if file == null:
@@ -192,7 +197,6 @@ func _input(event: InputEvent) -> void:
 		_active_scheme = detected_scheme
 		_sync_input_map()
 		active_scheme_changed.emit(_active_scheme)
-
 
 ## Logs registered actions that were just pressed this frame.
 func _process(_delta: float) -> void:

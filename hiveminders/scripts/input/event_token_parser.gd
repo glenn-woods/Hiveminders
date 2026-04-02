@@ -39,6 +39,7 @@ static func token_to_event(token: String) -> Array:
 			if not parts[1].is_valid_int():
 				return [null, "invalid joy_button index: '%s'" % parts[1]]
 			var event := InputEventJoypadButton.new()
+			event.device = -1  # -1 matches any device
 			event.button_index = parts[1].to_int() as JoyButton
 			event.pressed = true
 			return [event, ""]
@@ -51,6 +52,7 @@ static func token_to_event(token: String) -> Array:
 			if not parts[2].is_valid_float():
 				return [null, "invalid joy_axis value: '%s'" % parts[2]]
 			var event := InputEventJoypadMotion.new()
+			event.device = -1  # -1 matches any device
 			event.axis = parts[1].to_int() as JoyAxis
 			event.axis_value = parts[2].to_float()
 			return [event, ""]

@@ -1,0 +1,14 @@
+# Auto normalize text files
+* text=auto
+
+# Force LF for Godot/editor files
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.cfg text eol=lf
+*.import text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.ogg binary
