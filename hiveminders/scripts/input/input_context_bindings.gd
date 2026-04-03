@@ -12,3 +12,7 @@ extends Resource
 
 ## Bindings used when the active scheme is Keyboard/Mouse.
 @export var keyboard_mouse_bindings: Array[ActionBinding] = []
+
+## When true, both schemes' bindings are always registered regardless of the
+## active scheme. Use for UI contexts where mouse and controller must coexist.
+@export var merge_schemes: bool = false

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/character/character_class.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/unit_preview.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+class_id = "architect"
+display_name = "Architect"
+body_color = Color(0.7, 0.5, 0.9, 1.0)
+description = "Creative builder. Shapes the world."
+move_speed = 4.5
+jump_velocity = 6.0
+max_health = 90.0
+preview_scene = ExtResource("2")

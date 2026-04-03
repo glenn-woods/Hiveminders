@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_scene.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/third_person_camera.gd" id="2"]
@@ -21,21 +21,6 @@ script = ExtResource("1")
 [node name="UnitManager" type="Node" parent="."]
 script = ExtResource("4")
 
-[node name="PlayerUnit1" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-body_color = Color(0.2, 0.6, 0.9, 1.0)
-is_owned = true
-
-[node name="PlayerUnit2" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.0, 0)
-body_color = Color(0.2, 0.6, 0.9, 1.0)
-is_owned = true
-
-[node name="PlayerUnit3" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.0, 0)
-body_color = Color(0.2, 0.6, 0.9, 1.0)
-is_owned = true
-
 [node name="NeutralUnit" parent="." instance=ExtResource("3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 4)
 body_color = Color(0.5, 0.5, 0.5, 1.0)
@@ -44,7 +29,7 @@ is_owned = false
 [node name="ThirdPersonCamera" type="Camera3D" parent="."]
 current = true
 script = ExtResource("2")
-target_path = NodePath("../PlayerUnit1")
+target_path = NodePath("")
 
 [node name="IsometricCamera" type="Camera3D" parent="."]
 current = false

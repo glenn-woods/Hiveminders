@@ -136,6 +136,9 @@ static func parse(csv_text: String, path: String = "") -> ParseResult:
 		var rows: Array = context_rows[ctx]
 		var icb := InputContextBindings.new()
 		icb.context_name = ctx
+		# UI context always registers both schemes so mouse and controller coexist.
+		if ctx == "ui":
+			icb.merge_schemes = true
 
 		for row in rows:
 			# ActionDefinition.

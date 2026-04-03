@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Hiveminders"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -23,3 +23,5 @@ config/icon="res://icon.svg"
 
 InputSystem="*res://scripts/input/input_system.gd"
 TypeRegistry="*res://scripts/world/type_registry.gd"
+CharacterRegistry="*res://scripts/character/character_registry.gd"
+PlayerManager="*res://scripts/player/player_manager.gd"

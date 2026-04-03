@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/character/character_class.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/unit_preview.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+class_id = "guardian"
+display_name = "Guardian"
+body_color = Color(0.85, 0.35, 0.2, 1.0)
+description = "Tough and resilient. Hard to take down."
+move_speed = 4.0
+jump_velocity = 5.5
+max_health = 150.0
+preview_scene = ExtResource("2")

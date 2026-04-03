@@ -1,7 +1,7 @@
 context,action,action_type,gamepad,keyboard_mouse
 base,pause,BOOL,joy_button:6,key:Escape
-ui,select,BOOL,joy_button:0,mouse_button:1
-ui,back,BOOL,joy_button:1,key:Escape
+ui,ui_accept,BOOL,joy_button:0,mouse_button:1
+ui,ui_cancel,BOOL,joy_button:1,key:Escape
 ui,ui_up,BOOL,joy_axis:1:-1.0,key:W
 ui,ui_down,BOOL,joy_axis:1:1.0,key:S
 ui,ui_left,BOOL,joy_axis:0:-1.0,key:A
@@ -19,7 +19,7 @@ isometric,iso_rotate_up,BOOL,joy_axis:3:-1.0,
 isometric,iso_rotate_down,BOOL,joy_axis:3:1.0,
 isometric,cycle_unit_next,BOOL,joy_button:14,key:Period
 isometric,cycle_unit_prev,BOOL,joy_button:13,key:Comma
-isometric,toggle_mode,BOOL,joy_button:4,key:Tab
+isometric,toggle_mode,BOOL,joy_button:3,key:Tab
 third_person,move_left,BOOL,joy_axis:0:-1.0,key:A
 third_person,move_right,BOOL,joy_axis:0:1.0,key:D
 third_person,move_up,BOOL,joy_axis:1:-1.0,key:W
@@ -31,6 +31,6 @@ third_person,look_right,BOOL,joy_axis:2:1.0,
 third_person,look_up,BOOL,joy_axis:3:-1.0,
 third_person,look_down,BOOL,joy_axis:3:1.0,
 third_person,jump,BOOL,joy_button:0,key:Space
-third_person,toggle_mode,BOOL,joy_button:4,key:Tab
+third_person,toggle_mode,BOOL,joy_button:3,key:Tab
 third_person,cycle_unit_next,BOOL,joy_button:14,key:Period
 third_person,cycle_unit_prev,BOOL,joy_button:13,key:Comma

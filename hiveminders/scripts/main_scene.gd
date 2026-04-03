@@ -8,6 +8,15 @@ var _grid: TileGrid
 var _pause_menu: Node = null
 
 const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
+const UnitScene: PackedScene = preload("res://scenes/unit.tscn")
+
+## Spawn positions for up to 4 players.
+const SPAWN_POSITIONS: Array[Vector3] = [
+	Vector3(0, 1.0, 0),
+	Vector3(3, 1.0, 0),
+	Vector3(-3, 1.0, 0),
+	Vector3(0, 1.0, 3),
+]
 
 @onready var _unit_manager: UnitManager = $UnitManager
 @onready var _tp_camera: Camera3D = $ThirdPersonCamera
@@ -17,11 +26,27 @@ const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 func _ready() -> void:
 	InputSystem.push_context(_gameplay_contexts[_current_index])
 
-	# Gather all Unit nodes and hand them to the manager
+	# Spawn units from player slots
 	var units: Array[Unit] = []
+	var slots := PlayerManager.get_slots()
+	for i in range(slots.size()):
+		var slot := slots[i]
+		var unit: Unit = UnitScene.instantiate()
+		unit.is_owned = true
+		if slot.selected_class != null:
+			unit.body_color = slot.selected_class.body_color
+			unit.move_speed = slot.selected_class.move_speed
+			unit.jump_velocity = slot.selected_class.jump_velocity
+		if i < SPAWN_POSITIONS.size():
+			unit.transform.origin = SPAWN_POSITIONS[i]
+		add_child(unit)
+		units.append(unit)
+
+	# Also add any scene-placed units (e.g. neutral units)
 	for child in get_children():
-		if child is Unit:
+		if child is Unit and child not in units:
 			units.append(child)
+
 	_unit_manager.setup(units, _tp_camera)
 
 	# Start in third-person: TP camera active, iso off

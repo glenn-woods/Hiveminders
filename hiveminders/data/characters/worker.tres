@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterClass" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/character/character_class.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/unit_preview.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+class_id = "worker"
+display_name = "Worker"
+body_color = Color(0.2, 0.6, 0.9, 1.0)
+description = "Reliable and versatile. A solid all-rounder."
+move_speed = 5.0
+jump_velocity = 6.57
+max_health = 100.0
+preview_scene = ExtResource("2")

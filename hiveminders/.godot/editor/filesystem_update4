@@ -5,3 +5,12 @@ res://scripts/world/type_registry.gd
 res://scripts/world/voxel_mesh_generator.gd
 res://scripts/unit.gd
 res://scripts/unit_manager.gd
+res://scripts/ui/pause_menu.gd
+res://scripts/input/input_system.gd
+res://scripts/input/csv_bindings_parser.gd
+res://scripts/input/input_context_bindings.gd
+res://scripts/ui/character_select.gd
+res://scripts/character/character_registry.gd
+res://scripts/character/character_class.gd
+res://scripts/ui/player_preview_panel.gd
+res://scripts/player/player_slot.gd

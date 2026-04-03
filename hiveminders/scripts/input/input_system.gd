@@ -48,6 +48,9 @@ var _bindings_registry: Dictionary = {}
 ## Action names the system has registered in InputMap (used for cleanup in _sync_input_map).
 var _registered_actions: Array[String] = []
 
+## Godot's built-in action names — captured at startup, never erased.
+var _builtin_actions: Dictionary = {}
+
 # ---------------------------------------------------------------------------
 # Public getters
 # ---------------------------------------------------------------------------
@@ -100,6 +103,15 @@ const JOYPAD_MOTION_DEADZONE: float = 0.2
 ## Loads all InputContextBindings resources from the contexts directory,
 ## populates the bindings registry, pushes the initial context, and syncs InputMap.
 func _ready() -> void:
+	# InputSystem must keep processing during pause so scheme detection
+	# and context switching continue to work (e.g. in pause menus).
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	# Snapshot Godot's built-in actions before we touch InputMap.
+	# These will never be erased during _sync_input_map.
+	for action in InputMap.get_actions():
+		_builtin_actions[action] = true
+
 	# Explicitly set the default scheme here to avoid enum resolution issues
 	# that can occur when the value is assigned at the variable declaration site.
 	_active_scheme = InputScheme.KEYBOARD_MOUSE
@@ -212,9 +224,10 @@ func _process(_delta: float) -> void:
 ## When the stack has more than one context, base (index 0) actions are registered
 ## first, then top context actions are layered on top — top wins on name collision.
 func _sync_input_map() -> void:
-	# 1. Erase all actions previously registered by this system.
+	# 1. Erase only actions registered by this system, never Godot built-ins.
 	for action_name in _registered_actions:
-		InputMap.erase_action(action_name)
+		if not _builtin_actions.has(action_name):
+			InputMap.erase_action(action_name)
 	_registered_actions.clear()
 
 	# 2. If the stack is empty there is nothing to register.
@@ -228,24 +241,11 @@ func _sync_input_map() -> void:
 	# 4. If base == top (stack size 1), register only that context — no merge needed.
 	if base_context == top_context:
 		for action_def: ActionDefinition in base_context.actions:
-			InputMap.add_action(action_def.action_name)
+			if not _builtin_actions.has(action_def.action_name):
+				InputMap.add_action(action_def.action_name)
 			_registered_actions.append(action_def.action_name)
-
-		var bindings: Array[ActionBinding]
-		if _active_scheme == InputScheme.GAMEPAD:
-			bindings = base_context.gamepad_bindings
-		else:
-			bindings = base_context.keyboard_mouse_bindings
-
-		for binding: ActionBinding in bindings:
-			if binding.action_name not in _registered_actions:
-				push_warning(
-					"InputSystem: binding references unknown action '%s' in context '%s' — skipping."
-					% [binding.action_name, base_context.context_name]
-				)
-				continue
-			for event: InputEvent in binding.events:
-				InputMap.action_add_event(binding.action_name, event)
+		_register_bindings_for_context(base_context)
+		_flush_action_state()
 		return
 
 	# 5. Build merged_actions: base first, then top overlays (top wins on collision).
@@ -257,33 +257,43 @@ func _sync_input_map() -> void:
 
 	# 6. Register every merged action in InputMap.
 	for action_name: String in merged_actions:
-		InputMap.add_action(action_name)
+		if not _builtin_actions.has(action_name):
+			InputMap.add_action(action_name)
 		_registered_actions.append(action_name)
 
-	# 7. Build merged_bindings for the active scheme: base first, then top overlays.
-	var merged_bindings: Dictionary = {}  # String → ActionBinding
-	var base_bindings: Array[ActionBinding]
-	var top_bindings: Array[ActionBinding]
-	if _active_scheme == InputScheme.GAMEPAD:
-		base_bindings = base_context.gamepad_bindings
-		top_bindings = top_context.gamepad_bindings
+	# 7. Register bindings for base then top (top wins on collision).
+	_register_bindings_for_context(base_context)
+	_register_bindings_for_context(top_context)
+	_flush_action_state()
+
+## Forces all registered actions to a released state after a sync.
+## Prevents stale axis values from causing phantom input when actions
+## are re-registered while a physical axis is still deflected.
+func _flush_action_state() -> void:
+	for action_name in _registered_actions:
+		if InputMap.has_action(action_name):
+			Input.action_release(action_name)
+
+
+## Registers bindings from a context into InputMap.## If merge_schemes is true, registers both gamepad and keyboard/mouse bindings.
+## Otherwise registers only the active scheme's bindings.
+func _register_bindings_for_context(ctx: InputContextBindings) -> void:
+	var to_register: Array[ActionBinding] = []
+	if ctx.merge_schemes:
+		to_register.assign(ctx.gamepad_bindings)
+		for b in ctx.keyboard_mouse_bindings:
+			to_register.append(b)
+	elif _active_scheme == InputScheme.GAMEPAD:
+		to_register = ctx.gamepad_bindings
 	else:
-		base_bindings = base_context.keyboard_mouse_bindings
-		top_bindings = top_context.keyboard_mouse_bindings
+		to_register = ctx.keyboard_mouse_bindings
 
-	for binding: ActionBinding in base_bindings:
-		merged_bindings[binding.action_name] = binding
-	for binding: ActionBinding in top_bindings:
-		merged_bindings[binding.action_name] = binding
-
-	# 8. Attach each merged binding's events to InputMap, skipping unknown actions.
-	for action_name: String in merged_bindings:
-		if action_name not in _registered_actions:
+	for binding: ActionBinding in to_register:
+		if binding.action_name not in _registered_actions:
 			push_warning(
-				"InputSystem: binding references unknown action '%s' — skipping."
-				% action_name
+				"InputSystem: binding references unknown action '%s' in context '%s' — skipping."
+				% [binding.action_name, ctx.context_name]
 			)
 			continue
-		var binding: ActionBinding = merged_bindings[action_name]
 		for event: InputEvent in binding.events:
-			InputMap.action_add_event(action_name, event)
+			InputMap.action_add_event(binding.action_name, event)
